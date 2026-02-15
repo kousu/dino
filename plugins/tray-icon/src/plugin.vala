@@ -21,6 +21,12 @@ public class Plugin : RootInterface, Object {
             "im.dino.Dino",
             "im.dino.Dino",
             App.IndicatorCategory.COMMUNICATIONS);
+
+        // Connect to connection status for debugging
+        indicator.connection_changed.connect((connected) => {
+            debug("Tray icon connection changed: %s", connected ? "connected" : "disconnected");
+        });
+
         indicator.set_status(App.IndicatorStatus.ACTIVE);
         indicator.set_title("Dino");
 
@@ -37,29 +43,47 @@ public class Plugin : RootInterface, Object {
 
     private void setup_menu() {
         actions = new GLib.SimpleActionGroup();
+        menu = new GLib.Menu();
 
+        // Create show action
         var show_action = new GLib.SimpleAction("show", null);
-        show_action.activate.connect(() => toggle_window());
+        show_action.activate.connect(() => {
+            debug("Show action activated");
+            toggle_window();
+        });
         actions.add_action(show_action);
+        var show_item = new GLib.MenuItem("Show Dino", "indicator.show");
+        menu.append_item(show_item);
 
+        // Create preferences action
         var preferences_action = new GLib.SimpleAction("preferences", null);
         preferences_action.activate.connect(() => {
+            debug("Preferences action activated");
+            if (main_window != null) {
+                main_window.present();
+            }
             ((GLib.Application) app).activate_action("preferences", null);
         });
         actions.add_action(preferences_action);
+        var preferences_item = new GLib.MenuItem("Preferences", "indicator.preferences");
+        menu.append_item(preferences_item);
 
+        // Create quit action
         var quit_action = new GLib.SimpleAction("quit", null);
-        quit_action.activate.connect(() => app.quit());
+        quit_action.activate.connect(() => {
+            debug("Quit action activated");
+            app.quit();
+        });
         actions.add_action(quit_action);
+        var quit_item = new GLib.MenuItem("Quit", "indicator.quit");
+        menu.append_item(quit_item);
 
-        menu = new GLib.Menu();
-        menu.append("Show Dino", "indicator.show");
-        menu.append("Preferences", "indicator.preferences");
-        menu.append("Quit", "indicator.quit");
-
+        // Set menu and actions on indicator
         indicator.set_menu(menu);
         indicator.set_actions(actions);
         indicator.set_secondary_activate_target("indicator.show");
+
+        debug("Tray icon menu setup complete with %d items", menu.get_n_items());
     }
 
     private void on_window_added(Gtk.Window window) {
@@ -73,6 +97,8 @@ public class Plugin : RootInterface, Object {
                     indicator.set_status(App.IndicatorStatus.ACTIVE);
                 }
             });
+
+            debug("Tray icon: main window registered");
         }
     }
 
