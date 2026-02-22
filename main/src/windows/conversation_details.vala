@@ -23,6 +23,11 @@ namespace Dino.Ui.ConversationDetails {
 
         [GtkChild] public unowned ViewModel.ConversationDetails model { get; }
 
+        [GtkChild] public unowned Box forms_box;
+        [GtkChild] public unowned ListBox forms_list;
+        [GtkChild] public unowned Button forms_add_button;
+        [GtkChild] public unowned Button forms_remove_button;
+
         public StackPage? encryption_stack_page = null;
         public Box? encryption_box = null;
 
@@ -86,6 +91,23 @@ namespace Dino.Ui.ConversationDetails {
             notification_button_menu_content.can_shrink = true;
 
             update_blocked_button();
+
+            // Forms tab handlers
+            forms_list.row_selected.connect((row) => {
+                forms_remove_button.sensitive = (row != null);
+            });
+            forms_add_button.clicked.connect(() => {
+                // TODO: Open dialog to add a form template
+                print("Add form clicked\n");
+            });
+            forms_remove_button.clicked.connect(() => {
+                var selected_row = forms_list.get_selected_row();
+                if (selected_row != null) {
+                    // TODO: Remove the selected form template
+                    print("Remove form clicked\n");
+                    forms_list.remove(selected_row);
+                }
+            });
         }
 
         private void update_pinned_button() {
