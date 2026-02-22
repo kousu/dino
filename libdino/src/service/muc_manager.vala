@@ -265,6 +265,18 @@ public class MucManager : StreamInteractionModule, Object {
         return flag.has_room_feature(jid, Xep.Muc.Feature.FDP);
     }
 
+    public Gee.List<string>? get_fdp_forms(Account account, Jid jid) {
+        XmppStream? stream = stream_interactor.get_stream(account);
+        if (stream == null) {
+            return null;
+        }
+        Xep.Muc.Flag? flag = stream.get_flag(Xep.Muc.Flag.IDENTITY);
+        if (flag == null) {
+            return null;
+        }
+        return flag.get_fdp_forms(jid);
+    }
+
     public bool is_public_room(Account account, Jid jid) {
         return is_groupchat(jid, account) && !is_private_room(account, jid);
     }
@@ -670,7 +682,7 @@ public class MucManager : StreamInteractionModule, Object {
 
     private void on_build_message_stanza(Entities.Message message, Xmpp.MessageStanza message_stanza, Conversation conversation) {
         if (conversation.type_ == Conversation.Type.GROUPCHAT_PM) {
-            Xmpp.Xep.Muc.add_muc_pm_message_stanza_x_node(message_stanza);            
+            Xmpp.Xep.Muc.add_muc_pm_message_stanza_x_node(message_stanza);
         }
     }
 

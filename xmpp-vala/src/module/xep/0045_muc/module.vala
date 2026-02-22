@@ -467,6 +467,34 @@ public class Module : XmppStreamModule {
             if (parsed != null) features.add(parsed);
         }
         stream.get_flag(Flag.IDENTITY).set_room_features(jid, features);
+
+        // Parse extended data form for FDP forms (XEP-0128)
+        StanzaNode? query_node = info_result.iq.stanza.get_subnode("query", ServiceDiscovery.NS_URI_INFO);
+        if (query_node != null) {
+            StanzaNode? x_node = query_node.get_subnode("x", DataForms.NS_URI);
+            if (x_node != null) {
+                DataForms.DataForm? data_form = DataForms.DataForm.create_from_node(x_node);
+                if (data_form != null && data_form.form_type == "http://jabber.org/protocol/muc#roominfo") {
+                    foreach (DataForms.DataForm.Field field in data_form.fields) {
+                        if (field.var == "muc#roominfo_fdp_forms") {
+                            Gee.List<string> fdp_forms = new ArrayList<string>();
+                            StanzaNode? field_node = field.node;
+                            if (field_node != null) {
+                                foreach (StanzaNode value_node in field_node.get_subnodes("value", DataForms.NS_URI)) {
+                                    string? value = value_node.get_string_content();
+                                    if (value != null) {
+                                        fdp_forms.add(value);
+                                    }
+                                }
+                            }
+                            stream.get_flag(Flag.IDENTITY).set_fdp_forms(jid, fdp_forms);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         room_info_updated(stream, jid);
     }
 

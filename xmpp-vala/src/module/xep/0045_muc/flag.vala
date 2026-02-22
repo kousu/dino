@@ -7,6 +7,7 @@ public class Flag : XmppStreamFlag {
 
     private HashMap<Jid, Gee.List<Feature>> room_features = new HashMap<Jid, Gee.List<Feature>>(Jid.hash_bare_func, Jid.equals_bare_func);
     private HashMap<Jid, string> room_names = new HashMap<Jid, string>(Jid.hash_bare_func, Jid.equals_bare_func);
+    private HashMap<Jid, Gee.List<string>> fdp_forms = new HashMap<Jid, Gee.List<string>>(Jid.hash_bare_func, Jid.equals_bare_func);
 
     private HashMap<Jid, string> enter_ids = new HashMap<Jid, string>(Jid.hash_bare_func, Jid.equals_bare_func);
     public HashMap<Jid, Promise<JoinResult?>> enter_futures = new HashMap<Jid, Promise<JoinResult?>>(Jid.hash_func, Jid.equals_func);
@@ -22,6 +23,10 @@ public class Flag : XmppStreamFlag {
 
     public bool has_room_feature(Jid muc_jid, Feature feature) {
         return room_features.has_key(muc_jid.bare_jid) && room_features[muc_jid.bare_jid].contains(feature);
+    }
+
+    public Gee.List<string>? get_fdp_forms(Jid muc_jid) {
+        return fdp_forms.has_key(muc_jid.bare_jid) ? fdp_forms[muc_jid.bare_jid] : null;
     }
 
     public Jid? get_real_jid(Jid full_jid) { return occupant_real_jids[full_jid]; }
@@ -83,6 +88,10 @@ public class Flag : XmppStreamFlag {
 
     internal void set_room_features(Jid muc_jid, Gee.List<Feature> features) {
         room_features[muc_jid.bare_jid] = features;
+    }
+
+    internal void set_fdp_forms(Jid muc_jid, Gee.List<string> forms) {
+        fdp_forms[muc_jid.bare_jid] = forms;
     }
 
     internal void set_real_jid(Jid full_jid, Jid real_jid) { occupant_real_jids[full_jid] = real_jid; }
