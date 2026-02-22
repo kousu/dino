@@ -85,6 +85,7 @@ sources = files(
     'src/ui/widgets/avatar_picture.vala',
     'src/ui/widgets/date_separator.vala',
     'src/ui/widgets/fixed_ratio_picture.vala',
+    'src/ui/widgets/forms_tab.vala',
     'src/ui/widgets/natural_size_increase.vala',
     'src/view_model/account_details.vala',
     'src/view_model/conversation_details.vala',

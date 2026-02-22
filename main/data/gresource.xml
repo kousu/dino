@@ -19,6 +19,7 @@
     <file>dino-conversation-list-placeholder-arrow.svg</file>
     <file>file_default_widget.ui</file>
     <file>file_send_overlay.ui</file>
+    <file>forms_tab.ui</file>
     <file>global_search.ui</file>
     <file>gtk/help-overlay.ui</file>
     <file>icons/scalable/actions/dino-check-plain-symbolic.svg</file>

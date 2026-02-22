@@ -23,11 +23,6 @@ namespace Dino.Ui.ConversationDetails {
 
         [GtkChild] public unowned ViewModel.ConversationDetails model { get; }
 
-        [GtkChild] public unowned Box forms_box;
-        [GtkChild] public unowned ListBox forms_list;
-        [GtkChild] public unowned Button forms_add_button;
-        [GtkChild] public unowned Button forms_remove_button;
-
         public StackPage? encryption_stack_page = null;
         public Box? encryption_box = null;
 
@@ -36,6 +31,9 @@ namespace Dino.Ui.ConversationDetails {
 
         public StackPage? member_stack_page = null;
         public Box? member_box = null;
+
+        public StackPage? forms_stack_page = null;
+        public FormsTab? forms_tab = null;
 
         private SimpleAction block_action = new SimpleAction.stateful("block", VariantType.INT32, new Variant.int32(ViewModel.ConversationDetails.BlockState.UNBLOCK));
 
@@ -91,23 +89,6 @@ namespace Dino.Ui.ConversationDetails {
             notification_button_menu_content.can_shrink = true;
 
             update_blocked_button();
-
-            // Forms tab handlers
-            forms_list.row_selected.connect((row) => {
-                forms_remove_button.sensitive = (row != null);
-            });
-            forms_add_button.clicked.connect(() => {
-                // TODO: Open dialog to add a form template
-                print("Add form clicked\n");
-            });
-            forms_remove_button.clicked.connect(() => {
-                var selected_row = forms_list.get_selected_row();
-                if (selected_row != null) {
-                    // TODO: Remove the selected form template
-                    print("Remove form clicked\n");
-                    forms_list.remove(selected_row);
-                }
-            });
         }
 
         private void update_pinned_button() {
@@ -247,6 +228,24 @@ namespace Dino.Ui.ConversationDetails {
             foreach (Adw.PreferencesGroup preferences_group in Util.rows_to_preference_window_split_at_text(model.room_configuration_rows)) {
                 room_config_box.append(preferences_group);
             }
+
+            // Add Forms tab after Room Configuration
+            add_forms_tab();
+        }
+
+        public void add_forms_tab() {
+            if (forms_stack_page != null) return;
+
+            forms_tab = new FormsTab();
+
+            // Add to stack
+            var scrolled_window = new ScrolledWindow() { vexpand = true };
+            var clamp = new Adw.Clamp();
+            clamp.set_child(forms_tab);
+            scrolled_window.set_child(clamp);
+            forms_stack_page = stack.add_child(scrolled_window);
+            forms_stack_page.title = _("Forms");
+            forms_stack_page.name = "forms";
         }
 
         public void add_encryption_tab_element(Adw.PreferencesGroup preferences_group) {
