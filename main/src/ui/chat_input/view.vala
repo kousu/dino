@@ -22,9 +22,11 @@ public class View : Box {
     [GtkChild] public unowned Box quote_box;
     [GtkChild] public unowned ChatTextView chat_text_view;
     [GtkChild] public unowned Button file_button;
+    [GtkChild] public unowned Button form_button;
     [GtkChild] public unowned MenuButton emoji_button;
     [GtkChild] public unowned MenuButton encryption_button;
     [GtkChild] public unowned Separator file_separator;
+    [GtkChild] public unowned Separator form_separator;
     [GtkChild] public unowned Label chat_input_status;
 
     public EncryptionButton encryption_widget;
@@ -43,6 +45,7 @@ public class View : Box {
         emoji_button.set_popover(chooser);
 
         file_button.tooltip_text = Util.string_if_tooltips_active(_("Send a file"));
+        form_button.tooltip_text = Util.string_if_tooltips_active(_("Submit a form"));
 
         return this;
     }
