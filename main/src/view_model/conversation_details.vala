@@ -39,6 +39,8 @@ public class Dino.Ui.ViewModel.ConversationDetails : Object {
     public bool show_blocked { get; set; }
     public BlockState blocked { get; set; }
 
+    public bool has_fdp { get; set; }
+
     public GLib.ListStore about_rows = new GLib.ListStore(typeof(PreferencesRow.Any));
     public string? account_jid { get; set; }
 

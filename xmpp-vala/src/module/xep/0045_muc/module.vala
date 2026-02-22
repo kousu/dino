@@ -51,7 +51,8 @@ public enum Feature {
     STABLE_ID,
     TEMPORARY,
     UNMODERATED,
-    UNSECURED
+    UNSECURED,
+    FDP
 }
 
 public static void add_muc_pm_message_stanza_x_node(MessageStanza message_stanza) {
@@ -461,6 +462,7 @@ public class Module : XmppStreamModule {
                 case "muc_temporary": parsed = Feature.TEMPORARY; break;
                 case "muc_unmoderated": parsed = Feature.UNMODERATED; break;
                 case "muc_unsecured": parsed = Feature.UNSECURED; break;
+                case "urn:xmpp:fdp:0": parsed = Feature.FDP; break;
             }
             if (parsed != null) features.add(parsed);
         }

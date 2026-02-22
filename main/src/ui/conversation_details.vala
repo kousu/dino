@@ -26,6 +26,7 @@ namespace Dino.Ui.ConversationDetails {
         // Set some data once
         view_model.avatar = new ViewModel.CompatAvatarPictureModel(stream_interactor).set_conversation(model.conversation);
         view_model.show_blocked = model.conversation.type_ == Conversation.Type.CHAT && stream_interactor.get_module(BlockingManager.IDENTITY).is_supported(model.conversation.account);
+        view_model.has_fdp = model.conversation.type_ == Conversation.Type.GROUPCHAT && stream_interactor.get_module(MucManager.IDENTITY).has_fdp(model.conversation.account, model.conversation.counterpart);
         view_model.members_sorted.set_model(model.members);
         view_model.members.set_map_func((item) => {
             var conference_member = (Ui.Model.ConferenceMember) item;

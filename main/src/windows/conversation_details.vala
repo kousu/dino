@@ -60,6 +60,9 @@ namespace Dino.Ui.ConversationDetails {
             model.settings_rows.items_changed.connect(populate_about_tab);
             // TODO add_room_configuration_tab_element gets called even after the window is closed
             model.notify["room-configuration-rows"].connect(add_room_configuration_tab_element);
+            model.notify["has-fdp"].connect(() => {
+                if (model.has_fdp) add_forms_tab();
+            });
 
             model.notify["members"].connect(create_members);
             create_members();
@@ -205,6 +208,7 @@ namespace Dino.Ui.ConversationDetails {
                 add_room_configuration_tab_element();
             }
 
+
             if (model.account_jid != null) {
                 var account_label = new Label(@"via $(model.account_jid)") { halign=Align.START, margin_start=14, margin_top=4 };
                 account_label.add_css_class("dim-label");
@@ -228,9 +232,6 @@ namespace Dino.Ui.ConversationDetails {
             foreach (Adw.PreferencesGroup preferences_group in Util.rows_to_preference_window_split_at_text(model.room_configuration_rows)) {
                 room_config_box.append(preferences_group);
             }
-
-            // Add Forms tab after Room Configuration
-            add_forms_tab();
         }
 
         public void add_forms_tab() {

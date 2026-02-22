@@ -253,6 +253,18 @@ public class MucManager : StreamInteractionModule, Object {
         return flag.has_room_feature(jid, Xep.Muc.Feature.MODERATED);
     }
 
+    public bool has_fdp(Account account, Jid jid) {
+        XmppStream? stream = stream_interactor.get_stream(account);
+        if (stream == null) {
+            return false;
+        }
+        Xep.Muc.Flag? flag = stream.get_flag(Xep.Muc.Flag.IDENTITY);
+        if (flag == null) {
+            return false;
+        }
+        return flag.has_room_feature(jid, Xep.Muc.Feature.FDP);
+    }
+
     public bool is_public_room(Account account, Jid jid) {
         return is_groupchat(jid, account) && !is_private_room(account, jid);
     }
