@@ -1,0 +1,277 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE xep SYSTEM 'xep.dtd' [
+  <!ENTITY % ents SYSTEM 'xep.ent'>
+%ents;
+]>
+<?xml-stylesheet type='text/xsl' href='xep.xsl'?>
+<xep>
+<header>
+  <title>Form Discovery and Publishing: Message Sharing</title>
+  <abstract>This specification defines a way to share references to submitted FDP forms within chat messages, enabling inline form display in conversations.</abstract>
+  &LEGALNOTICE;
+  <number>xxxx</number>
+  <status>ProtoXEP</status>
+  <type>Standards Track</type>
+  <sig>Standards</sig>
+  <approver>Council</approver>
+  <dependencies>
+    <spec>XMPP Core</spec>
+    <spec>XEP-0004</spec>
+    <spec>XEP-0060</spec>
+    <spec>XEP-0346</spec>
+    <spec>XEP-0428</spec>
+  </dependencies>
+  <supersedes/>
+  <supersededby/>
+  <shortname>fdp-share</shortname>
+  <author>
+    <firstname>TBD</firstname>
+    <surname>TBD</surname>
+    <email>TBD</email>
+    <jid>TBD</jid>
+  </author>
+  <revision>
+    <version>0.0.1</version>
+    <date>2025-02-21</date>
+    <initials>draft</initials>
+    <remark><p>Initial draft.</p></remark>
+  </revision>
+</header>
+
+<section1 topic='Introduction' anchor='intro'>
+  <p>&xep0346; defines a pubsub-based mechanism for discovering form templates and publishing completed forms. However, it does not specify how to share or reference submitted forms within chat conversations.</p>
+  <p>This extension defines a method for attaching a reference to a submitted FDP form to a &lt;message/&gt; stanza, enabling clients to display form submissions inline within MUC rooms or direct message conversations.</p>
+</section1>
+
+<section1 topic='Requirements' anchor='reqs'>
+  <ul>
+    <li>Allow users to share a reference to a submitted FDP form in a chat message.</li>
+    <li>Provide fallback text for clients that do not support this extension.</li>
+    <li>Enable receiving clients to fetch and display the full form inline.</li>
+    <li>Support both MUC and one-to-one messaging contexts.</li>
+  </ul>
+</section1>
+
+<section1 topic='Use Cases' anchor='usecases'>
+  <section2 topic='Publishing and Obtaining the Item ID' anchor='usecase-publish'>
+    <p>Before sharing a form in chat, the client must first publish the completed form to the pubsub service and obtain the server-generated item ID from the response.</p>
+
+    <example caption='Client publishes completed form (no item ID)'><![CDATA[
+<iq type='set'
+    from='alice@example.org/client'
+    to='pubsub.example.org'
+    id='publish-1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <publish node='fdp/submitted/situation-report'>
+      <item>
+        <x xmlns='jabber:x:data' type='submit'>
+          <field var='FORM_TYPE' type='hidden'>
+            <value>urn:example:situation-report</value>
+          </field>
+          <field var='location' type='text-single'>
+            <value>Grid 12345</value>
+          </field>
+          <field var='status' type='list-single'>
+            <value>all-clear</value>
+          </field>
+        </x>
+      </item>
+    </publish>
+  </pubsub>
+</iq>]]></example>
+
+    <example caption='Server responds with generated item ID'><![CDATA[
+<iq type='result'
+    from='pubsub.example.org'
+    to='alice@example.org/client'
+    id='publish-1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <publish node='fdp/submitted/situation-report'>
+      <item id='sr-2025-02-21-001'/>
+    </publish>
+  </pubsub>
+</iq>]]></example>
+
+    <p>The client MUST extract the 'id' attribute from the &lt;item/&gt; element in the publish response. This server-generated ID is then used in the &lt;form-share/&gt; element when sharing the form in chat.</p>
+  </section2>
+
+  <section2 topic='Sharing a Submitted Form' anchor='usecase-share'>
+    <p>After receiving the publish response with the item ID, the client may share a reference to that form in a chat message. The message contains:</p>
+    <ol>
+      <li>A &lt;form-share/&gt; element referencing the submitted form's location.</li>
+      <li>A &lt;body/&gt; element containing human-readable fallback text summarizing the form.</li>
+      <li>A &lt;fallback/&gt; element (per &xep0428;) indicating the body is fallback content.</li>
+    </ol>
+
+    <example caption='Sharing a submitted form in a MUC'><![CDATA[
+<message to='ops@muc.example.org' type='groupchat' id='msg-1'>
+  <form-share xmlns='urn:xmpp:fdp:0'
+              node='fdp/submitted/situation-report'
+              item='sr-2025-02-21-001'
+              service='pubsub.example.org'>
+    <title>Situation Report</title>
+  </form-share>
+  <body>[Form: Situation Report]
+Submitted by: alice@example.org
+Time: 2025-02-21T14:30:00Z
+Location: Grid 12345
+Status: All clear
+---
+View full form in a compatible client.</body>
+  <fallback xmlns='urn:xmpp:fallback:0' for='urn:xmpp:fdp:0'>
+    <body/>
+  </fallback>
+</message>]]></example>
+
+    <p>The &lt;form-share/&gt; element MUST include:</p>
+    <ul>
+      <li><strong>node</strong> (REQUIRED): The pubsub node where the form was published (e.g., 'fdp/submitted/situation-report').</li>
+      <li><strong>item</strong> (REQUIRED): The item ID of the published form.</li>
+      <li><strong>service</strong> (REQUIRED): The JID of the pubsub service hosting the form.</li>
+    </ul>
+    <p>The &lt;form-share/&gt; element MAY include:</p>
+    <ul>
+      <li><strong>&lt;title/&gt;</strong> (OPTIONAL): A human-readable title for the form type.</li>
+    </ul>
+  </section2>
+
+  <section2 topic='Receiving a Form Share' anchor='usecase-receive'>
+    <p>Upon receiving a message containing a &lt;form-share/&gt; element, a supporting client SHOULD:</p>
+    <ol>
+      <li>NOT display the fallback &lt;body/&gt; content (as indicated by the &lt;fallback/&gt; element).</li>
+      <li>Display a form summary or placeholder indicating a form has been shared.</li>
+      <li>Optionally fetch the full form from the pubsub service for inline display.</li>
+    </ol>
+
+    <example caption='Fetching the shared form'><![CDATA[
+<iq type='get'
+    from='bob@example.org/client'
+    to='pubsub.example.org'
+    id='fetch-1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <items node='fdp/submitted/situation-report'>
+      <item id='sr-2025-02-21-001'/>
+    </items>
+  </pubsub>
+</iq>]]></example>
+
+    <example caption='Pubsub service returns the form'><![CDATA[
+<iq type='result'
+    from='pubsub.example.org'
+    to='bob@example.org/client'
+    id='fetch-1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <items node='fdp/submitted/situation-report'>
+      <item id='sr-2025-02-21-001'>
+        <x xmlns='jabber:x:data' type='result'>
+          <title>Situation Report</title>
+          <field var='submitter' type='jid-single'>
+            <value>alice@example.org</value>
+          </field>
+          <field var='timestamp' type='text-single'>
+            <value>2025-02-21T14:30:00Z</value>
+          </field>
+          <field var='location' type='text-single'>
+            <value>Grid 12345</value>
+          </field>
+          <field var='status' type='list-single'>
+            <value>all-clear</value>
+          </field>
+        </x>
+      </item>
+    </items>
+  </pubsub>
+</iq>]]></example>
+  </section2>
+
+  <section2 topic='Fallback for Legacy Clients' anchor='usecase-fallback'>
+    <p>Clients that do not support this extension will display the &lt;body/&gt; content, which provides a human-readable summary of the form. The fallback text SHOULD include:</p>
+    <ul>
+      <li>An indication that a form was shared (e.g., "[Form: Title]").</li>
+      <li>Key field values from the submitted form.</li>
+      <li>A note that full form viewing requires a compatible client.</li>
+    </ul>
+    <p>The &lt;fallback/&gt; element with for='urn:xmpp:fdp:0' indicates the entire &lt;body/&gt; is fallback content for the form share. Supporting clients MUST NOT display this body text when rendering the form inline.</p>
+  </section2>
+</section1>
+
+<section1 topic='Business Rules' anchor='rules'>
+  <section2 topic='Form Access Control' anchor='rules-access'>
+    <p>The pubsub node containing the submitted form may have access controls. If a receiving client cannot fetch the form (due to permissions or node configuration), it SHOULD display the fallback text instead and MAY indicate that the form could not be loaded.</p>
+  </section2>
+
+  <section2 topic='Fallback Text Generation' anchor='rules-fallback'>
+    <p>When generating fallback text, the sending client SHOULD:</p>
+    <ul>
+      <li>Include the form title or type.</li>
+      <li>Include a reasonable subset of field values (respecting privacy considerations).</li>
+      <li>Not exceed a reasonable length (suggested: 500 characters).</li>
+      <li>Use a consistent, parseable format (suggested: "Field: Value" on separate lines).</li>
+    </ul>
+  </section2>
+
+  <section2 topic='Message Archives' anchor='rules-archive'>
+    <p>Messages containing &lt;form-share/&gt; elements SHOULD be archived normally. The fallback text ensures archived messages remain useful even if the pubsub item is later deleted or becomes inaccessible.</p>
+  </section2>
+</section1>
+
+<section1 topic='Discovering Support' anchor='disco'>
+  <p>If a client supports receiving FDP form shares, it SHOULD advertise this via &xep0030;.</p>
+
+  <example caption='Service discovery response'><![CDATA[
+<iq type='result'
+    from='bob@example.org/client'
+    to='alice@example.org/client'
+    id='disco-1'>
+  <query xmlns='http://jabber.org/protocol/disco#info'>
+    <feature var='urn:xmpp:fdp:0'/>
+  </query>
+</iq>]]></example>
+</section1>
+
+<section1 topic='Security Considerations' anchor='security'>
+  <ul>
+    <li>Clients MUST verify they have permission to access the referenced pubsub node before attempting to fetch form data.</li>
+    <li>The fallback text may contain sensitive form data; senders should consider what information to include based on the conversation context.</li>
+    <li>Receiving clients should validate that fetched form data matches the expected node/item to prevent substitution attacks.</li>
+    <li>Forms containing sensitive data should be published to nodes with appropriate access controls.</li>
+  </ul>
+</section1>
+
+<section1 topic='IANA Considerations' anchor='iana'>
+  <p>This document requires no interaction with &IANA;.</p>
+</section1>
+
+<section1 topic='XMPP Registrar Considerations' anchor='registrar'>
+  <section2 topic='Protocol Namespaces' anchor='registrar-ns'>
+    <p>This specification defines the following XML namespace:</p>
+    <ul>
+      <li>urn:xmpp:fdp:0</li>
+    </ul>
+  </section2>
+</section1>
+
+<section1 topic='XML Schema' anchor='schema'>
+  <code><![CDATA[
+<?xml version='1.0' encoding='UTF-8'?>
+<xs:schema
+    xmlns:xs='http://www.w3.org/2001/XMLSchema'
+    targetNamespace='urn:xmpp:fdp:0'
+    xmlns='urn:xmpp:fdp:0'
+    elementFormDefault='qualified'>
+
+  <xs:element name='form-share'>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name='title' type='xs:string' minOccurs='0'/>
+      </xs:sequence>
+      <xs:attribute name='node' type='xs:string' use='required'/>
+      <xs:attribute name='item' type='xs:string' use='required'/>
+      <xs:attribute name='service' type='xs:string' use='required'/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>]]></code>
+</section1>
+
+</xep>
