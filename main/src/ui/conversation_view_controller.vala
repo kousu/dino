@@ -35,6 +35,8 @@ public class ConversationViewController : Object {
         chat_input_controller.file_picker_selected.connect(open_file_picker);
         chat_input_controller.clipboard_pasted.connect(on_clipboard_paste);
 
+        stream_interactor.get_module(MucManager.IDENTITY).room_info_updated.connect(on_room_info_updated);
+
         view.conversation_frame.init(stream_interactor);
 
         // drag 'n drop file upload
@@ -138,6 +140,7 @@ public class ConversationViewController : Object {
         }
 
         update_file_upload_status.begin();
+        update_form_button_status();
     }
 
     public void unset_conversation() {
@@ -160,6 +163,21 @@ public class ConversationViewController : Object {
                 view.remove_controller(drop_event_controller);
             }
         }
+    }
+
+    private void on_room_info_updated(Account account, Xmpp.Jid muc_jid) {
+        if (conversation == null) return;
+        if (conversation.account.equals(account) && conversation.counterpart.equals(muc_jid)) {
+            update_form_button_status();
+        }
+    }
+
+    private void update_form_button_status() {
+        if (conversation == null) return;
+
+        bool has_fdp = conversation.type_ == Conversation.Type.GROUPCHAT &&
+            stream_interactor.get_module(MucManager.IDENTITY).has_fdp(conversation.account, conversation.counterpart);
+        chat_input_controller.set_form_button_visible(has_fdp);
     }
 
     private void update_conversation_topic(string? subtitle = null) {

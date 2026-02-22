@@ -55,6 +55,11 @@ public class View : Box {
         file_separator.visible = active;
     }
 
+    public void set_form_button_visible(bool visible) {
+        form_button.visible = visible;
+        form_separator.visible = visible;
+    }
+
     public void initialize_for_conversation(Conversation conversation) {
         if (this.conversation != null) entry_cache[this.conversation] = chat_text_view.text_view.buffer.text;
         this.conversation = conversation;

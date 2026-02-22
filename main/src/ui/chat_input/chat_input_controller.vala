@@ -102,6 +102,10 @@ public class ChatInputController : Object {
         chat_input.set_file_upload_active(active);
     }
 
+    public void set_form_button_visible(bool visible) {
+        chat_input.set_form_button_visible(visible);
+    }
+
     private void on_encryption_changed(Encryption encryption) {
         reset_input_field_status();
 
