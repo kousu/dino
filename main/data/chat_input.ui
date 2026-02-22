@@ -35,7 +35,7 @@
                         </child>
                         <child>
                             <object class="GtkButton" id="form_button">
-                                <property name="icon-name">dino-document-edit-symbolic</property>
+                                <property name="icon-name">dino-form-symbolic</property>
                                 <property name="valign">start</property>
                                 <style>
                                     <class name="flat"/>
