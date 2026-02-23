@@ -58,6 +58,40 @@ public class DataForm {
             this.node = node;
         }
 
+        public static Field create(Type type_, string var_name, string? label = null) {
+            StanzaNode node = new StanzaNode.build("field", NS_URI);
+            node.put_attribute("var", var_name);
+            if (label != null) node.put_attribute("label", label);
+
+            switch (type_) {
+                case Type.BOOLEAN:
+                    node.put_attribute("type", "boolean");
+                    return new BooleanField(node);
+                case Type.FIXED:
+                    node.put_attribute("type", "fixed");
+                    return new FixedField(node);
+                case Type.HIDDEN:
+                    node.put_attribute("type", "hidden");
+                    return new HiddenField.from_node(node);
+                case Type.JID_MULTI:
+                    node.put_attribute("type", "jid-multi");
+                    return new JidMultiField(node);
+                case Type.LIST_SINGLE:
+                    node.put_attribute("type", "list-single");
+                    return new ListSingleField(node);
+                case Type.LIST_MULTI:
+                    node.put_attribute("type", "list-multi");
+                    return new ListMultiField(node);
+                case Type.TEXT_PRIVATE:
+                    node.put_attribute("type", "text-private");
+                    return new TextPrivateField(node);
+                case Type.TEXT_SINGLE:
+                default:
+                    node.put_attribute("type", "text-single");
+                    return new TextSingleField(node);
+            }
+        }
+
         internal Gee.List<string> get_values() {
             Gee.List<string> ret = new ArrayList<string>();
             Gee.List<StanzaNode> value_nodes = node.get_subnodes("value", NS_URI);
@@ -152,6 +186,22 @@ public class DataForm {
             type_ = Type.LIST_SINGLE;
             node.set_attribute("type", "list-single");
         }
+
+        public void add_option(string label, string value) {
+            StanzaNode option_node = new StanzaNode.build("option", NS_URI);
+            option_node.put_attribute("label", label);
+            StanzaNode value_node = new StanzaNode.build("value", NS_URI);
+            value_node.put_node(new StanzaNode.text(value));
+            option_node.put_node(value_node);
+            node.put_node(option_node);
+        }
+
+        public void clear_options() {
+            var option_nodes = node.get_subnodes("option", NS_URI);
+            foreach (var option_node in option_nodes) {
+                node.sub_nodes.remove(option_node);
+            }
+        }
     }
 
     public class ListMultiField : Field {
@@ -160,6 +210,22 @@ public class DataForm {
         public ListMultiField(StanzaNode node) {
             base.from_node(node);
             type_ = Type.LIST_MULTI;
+        }
+
+        public void add_option(string label, string value) {
+            StanzaNode option_node = new StanzaNode.build("option", NS_URI);
+            option_node.put_attribute("label", label);
+            StanzaNode value_node = new StanzaNode.build("value", NS_URI);
+            value_node.put_node(new StanzaNode.text(value));
+            option_node.put_node(value_node);
+            node.put_node(option_node);
+        }
+
+        public void clear_options() {
+            var option_nodes = node.get_subnodes("option", NS_URI);
+            foreach (var option_node in option_nodes) {
+                node.sub_nodes.remove(option_node);
+            }
         }
     }
 
@@ -235,6 +301,10 @@ public class DataForm {
 
     public static DataForm? create_from_node(StanzaNode node) {
         return new DataForm.from_node(node);
+    }
+
+    public static DataForm create_empty() {
+        return new DataForm();
     }
 
     public void add_field(Field field) {

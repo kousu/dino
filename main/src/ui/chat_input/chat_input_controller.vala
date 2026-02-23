@@ -51,6 +51,14 @@ public class ChatInputController : Object {
 
         chat_input.file_button.clicked.connect(() => file_picker_selected());
 
+        chat_input.form_button.clicked.connect(() => {
+            var dialog = new FormEditorDialog();
+            dialog.form_submitted.connect((form) => {
+                debug("Form submitted");
+            });
+            dialog.present((Window)chat_input.get_root());
+        });
+
         stream_interactor.get_module(MucManager.IDENTITY).received_occupant_role.connect(update_moderated_input_status);
         stream_interactor.get_module(MucManager.IDENTITY).room_info_updated.connect(update_moderated_input_status);
 
