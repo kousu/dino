@@ -26,6 +26,7 @@ dependencies = [
 sources = files(
     'src/application.vala',
     'src/dbus/dbus.vala',
+    'src/dbus/background.vala',
     'src/dbus/login1.vala',
     'src/dbus/notifications.vala',
     'src/dbus/upower.vala',

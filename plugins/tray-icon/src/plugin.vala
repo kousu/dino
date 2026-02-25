@@ -14,6 +14,7 @@ namespace Dino.Plugins.TrayIcon {
 
   public class Plugin : RootInterface, Object {
 
+
     public Dino.Application app;
     private DBusNotifications? dbus_notifications = null;
     private Gtk.Window? main_window = null;
@@ -25,6 +26,28 @@ namespace Dino.Plugins.TrayIcon {
       if (desktop == null)return false;
       desktop = desktop.down();
       return desktop.contains("gnome") || desktop.contains("unity");
+    }
+
+    /* case 1.5: background portals */
+    private bool background_portal_active = false;
+    public async void ensure_background_portal() {
+      try {
+          yield request_background_portal();
+          debug("Background permission confirmed.");
+          background_portal_active = true;
+      } catch (PortalError.CANCELLED e) {
+          // The user clicked "No". We respect that and stay quiet,
+          // or perhaps show a subtle status icon.
+          debug("User denied backgrounding: %s", e.message);
+      } catch (Error e) {
+          // Something actually went wrong (DBus failed, Portal missing, etc.)
+          debug("backgrounding failed: %s", e.message);
+          // this.show_notification(
+          //     "Background Support Issue",
+          //     "Dino might not receive messages while closed: " + e.message,
+          //     Gtk.MessageType.WARNING
+          // );
+      }
     }
 
     /* Shared state */
@@ -62,6 +85,7 @@ namespace Dino.Plugins.TrayIcon {
 
     /* Case 1: Persistent Notification */
 
+
     private bool persistent_notification_active = false;
     private uint32 persistent_notification_id = 0;
 
@@ -93,6 +117,7 @@ namespace Dino.Plugins.TrayIcon {
       debug("Persistent notifications capability NOT detected");
       return false;
     }
+
 
     private void setup_persistent_notification() {
       persistent_notification_active = true;
@@ -261,6 +286,12 @@ namespace Dino.Plugins.TrayIcon {
       if (is_gnome_desktop() && (yield has_persistent_notifications())) {
         // Case 1
         setup_persistent_notification();
+
+        debug("Detecting background portal");
+        if(yield has_background_portal()) {
+          debug("background portal detected, attempting to use it");
+          yield ensure_background_portal();
+        }
         // note that the notification isn't actually sent until update_tray()
 
         // Keep app when window closed
@@ -353,6 +384,10 @@ namespace Dino.Plugins.TrayIcon {
       }
 
       update_persistent_notification.begin(body, (_, res) => { update_persistent_notification.end(res); });
+      if(background_portal_active) {
+        debug("updating background portal");
+        update_background_portal_status.begin(body, (_, res) => { update_background_portal_status.end(res); });
+      }
       update_sni_tray(body);
     }
 
