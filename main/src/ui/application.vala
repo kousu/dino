@@ -78,11 +78,7 @@ public class Dino.Ui.Application : Adw.Application, Dino.Application {
                 controller.set_window(window);
                 if ((get_flags() & ApplicationFlags.IS_SERVICE) == ApplicationFlags.IS_SERVICE) window.hide_on_close = true;
             }
-            if (!(has_tray_plugin && settings.minimized)) {
-                if(window != null) {
-                    window.present();
-                }
-            }
+            window.present();
         });
     }
 
