@@ -34,7 +34,14 @@ namespace Dino.Plugins.TrayIcon {
       var conversation_manager = app.stream_interactor.get_module(ConversationManager.IDENTITY);
       var chat_interaction = app.stream_interactor.get_module(ChatInteraction.IDENTITY);
       foreach (Conversation conversation in conversation_manager.get_active_conversations()) {
-        total += chat_interaction.get_num_unread(conversation);
+        switch (conversation.get_notification_setting(app.stream_interactor)) {
+          case Conversation.NotifySetting.ON:
+            total += chat_interaction.get_num_unread(conversation);
+            break;
+          case Conversation.NotifySetting.HIGHLIGHT:
+            total += chat_interaction.get_num_unread_mentions(conversation);
+            break;
+        }
       }
       return total;
     }

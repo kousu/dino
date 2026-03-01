@@ -50,6 +50,47 @@ public class ChatInteraction : StreamInteractionModule, Object {
         return (int) query.count();
     }
 
+    public int get_num_unread_mentions(Conversation conversation) {
+        // count the number of unread _mentions_ (corresponding to NotifySetting.HIGHLIGHT)
+        // this could be inaccurate if the user has changed their nick recently
+
+        // mentions (NotifySetting.HIGHLIGHT) only happens for MUCs;
+        // in DMs, the only notify options are On (NotifySetting.ON) or Mute (NotifySetting.OFF)
+        if(conversation.type_ != Conversation.Type.GROUPCHAT) return 0;
+
+        Jid? nick = stream_interactor.get_module(MucManager.IDENTITY).get_own_jid(conversation.counterpart, conversation.account);
+        if (nick == null || nick.resourcepart == null) return 0;
+
+        Database db = Dino.Application.get_default().db;
+
+        // use the full-text-search that's set up for searching message history
+        // to efficiently find messages containing nick.resourcepart.
+        Qlite.QueryBuilder query = db.message
+            .match(db.message.body, "\"" + nick.resourcepart.replace("\"", "\"\"") + "\"") // this is what invokes full text search
+            .join_on(db.content_item, "message.id=content_item.foreign_id AND content_item.content_type=1")
+            .with(db.content_item.conversation_id, "=", conversation.id)
+            .with(db.content_item.hide, "=", false);
+
+        ContentItem? read_up_to_item = stream_interactor.get_module(ContentItemStore.IDENTITY).get_item_by_id(conversation, conversation.read_up_to_item);
+        if (read_up_to_item != null) {
+            string time = read_up_to_item.time.to_unix().to_string();
+            string id = read_up_to_item.id.to_string();
+            query.where(@"content_item.time > ? OR (content_item.time = ? AND content_item.id > ?)", { time, time, id });
+        }
+
+        // do a second pass, applying the same regex that libdino/src/service/notification_events.vala uses for mentions.
+        // because the full text search has false-positives (e.g. the username "i-am-awesome" matches "I am awesome!").
+        string nick_pattern = "\\b" + Regex.escape_string(nick.resourcepart) + "\\b";
+        int count = 0;
+        foreach (Qlite.Row row in query) {
+            string? body = row[db.message.body];
+            if (body != null && Regex.match_simple(nick_pattern, body, RegexCompileFlags.CASELESS)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public bool is_active_focus(Conversation? conversation = null) {
         if (conversation != null) {
             return focus_in && conversation.equals(this.selected_conversation);
