@@ -21,7 +21,7 @@ namespace Dino.Ui {
     // state caching for safety and avoidance of redundancy
     private bool tray_active = false;
     private bool hide_desired = false; // what state the user wants; only matters if the tray restarts under us.
-    public bool attention { get; private set; default = false; } // as a public property so it can be notify["attention"]'d
+    public bool attention { get; set; default = false; } // as a public property so it can be notify["attention"]'d
 
     /* Utilities */
 
@@ -125,17 +125,9 @@ namespace Dino.Ui {
 
       // XXX: should these handlers have their handler_ids saved and be properly disconnect()ed in shutdown_tray() ?
 
-      // Sync the attention icon with notifications, and clear it as soon as dino is focused.
-      // This is not great UX; it would be more conventional to sync with
-      // unread messages, but Dino is lacking infrastructure to make that
-      // efficient. This will be improved: https://github.com/dino/dino/pull/1828#issuecomment-4010944395
-      app.stream_interactor.get_module(NotificationEvents.IDENTITY).notify_content_item.connect(() => {
-        attention = true;
-      });
-
-      app.stream_interactor.get_module(ChatInteraction.IDENTITY).focused_in.connect(() => {
-        attention = false;
-      });
+      // Sync the attention icon with notification-worthy unread messages.
+      var chat_interaction = app.stream_interactor.get_module(ChatInteraction.IDENTITY);
+      chat_interaction.bind_property("has-any-notifications", this, "attention", BindingFlags.SYNC_CREATE);
 
       notify["attention"].connect(update_attention);
       app.window.notify["visible"].connect(update_visible);
