@@ -244,7 +244,7 @@ public class ConversationSelectorRow : ListBoxRow {
             unread_count_label.label = num_unread.to_string();
             unread_count_label.visible = true;
 
-            if (conversation.get_notification_setting(stream_interactor) == Conversation.NotifySetting.ON) {
+            if (stream_interactor.get_module(ChatInteraction.IDENTITY).has_notifications(conversation)) {
                 unread_count_label.add_css_class("unread-count-notify");
                 unread_count_label.remove_css_class("unread-count");
             } else {
