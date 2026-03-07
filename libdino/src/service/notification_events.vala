@@ -68,11 +68,7 @@ public class NotificationEvents : StreamInteractionModule, Object {
                 if (message.direction == Message.DIRECTION_SENT) return;
 
                 if (notify == Conversation.NotifySetting.HIGHLIGHT) {
-                    Jid? nick = stream_interactor.get_module(MucManager.IDENTITY).get_own_jid(conversation.counterpart, conversation.account);
-                    if (nick == null) return;
-
-                    bool highlight = Regex.match_simple("\\b" + Regex.escape_string(nick.resourcepart) + "\\b", message.body, RegexCompileFlags.CASELESS);
-                    if (!highlight) return;
+                    if (!is_mention(stream_interactor, conversation, message.body)) return;
                 }
 
                 notify_content_item(item, conversation);
