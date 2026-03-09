@@ -53,6 +53,12 @@ public class Dino.Ui.ViewModel.ConversationParticipantAvatarPictureTileModel : A
         avatar_manager.fetched_avatar.connect(on_received_avatar);
     }
 
+    ~ConversationParticipantAvatarPictureTileModel() {
+        stream_interactor.get_module(RosterManager.IDENTITY).updated_roster_item.disconnect(on_roster_updated);
+        avatar_manager.received_avatar.disconnect(on_received_avatar);
+        avatar_manager.fetched_avatar.disconnect(on_received_avatar);
+    }
+
     private void update_image_file() {
         File image_file = avatar_manager.get_avatar_file(conversation.account, primary_avatar_jid);
         if (image_file == null && secondary_avatar_jid != null) {
