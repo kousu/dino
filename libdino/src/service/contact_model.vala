@@ -43,14 +43,14 @@ namespace Dino {
             if (conversation == null) return;
             var display_name_model = conversation_models[conversation];
             if (display_name_model == null) return;
-            display_name_model.display_name = Dino.get_conversation_display_name(stream_interactor, conversation, "%s (%s)");
+            display_name_model.display_name = Dino.get_conversation_display_name(stream_interactor, conversation, "%s (%s)", null);
         }
 
         public Model.ConversationDisplayName get_display_name_model(Conversation conversation) {
             if (conversation_models.has_key(conversation)) return conversation_models[conversation];
 
             var model = new Model.ConversationDisplayName();
-            model.display_name = Dino.get_conversation_display_name(stream_interactor, conversation, "%s (%s)");
+            model.display_name = Dino.get_conversation_display_name(stream_interactor, conversation, "%s (%s)", null);
             conversation_models[conversation] = model;
             return model;
         }

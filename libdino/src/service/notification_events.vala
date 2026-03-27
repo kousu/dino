@@ -55,7 +55,7 @@ public class NotificationEvents : StreamInteractionModule, Object {
         Conversation.NotifySetting notify = conversation.get_notification_setting(stream_interactor);
         if (notify == Conversation.NotifySetting.OFF) return;
 
-        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null);
+        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null, null);
         string? participant_display_name = null;
         if (conversation.type_ == Conversation.Type.GROUPCHAT) {
             participant_display_name = get_participant_display_name(stream_interactor, conversation, item.jid);
@@ -119,7 +119,7 @@ public class NotificationEvents : StreamInteractionModule, Object {
 
     private async void on_call_incoming(Call call, CallState call_state, Conversation conversation, bool video, bool multiparty) {
         if (!stream_interactor.get_module(Calls.IDENTITY).can_we_do_calls(call.account)) return;
-        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null);
+        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null, null);
 
         NotificationProvider notifier = yield notifier.wait_async();
         yield notifier.notify_call(call, conversation, video, multiparty, conversation_display_name);

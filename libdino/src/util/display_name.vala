@@ -4,8 +4,12 @@ using Dino.Entities;
 using Xmpp;
 
 namespace Dino {
-    public static string get_conversation_display_name(StreamInteractor stream_interactor, Conversation conversation, string? muc_pm_format) {
+    public static string get_conversation_display_name(StreamInteractor stream_interactor, Conversation conversation, string? muc_pm_format, string? self_format) {
         if (conversation.type_ == Conversation.Type.CHAT) {
+            if(conversation.counterpart.equals_bare(conversation.account.bare_jid)) {
+                // Support the virtual "Note to Self" contact added by RosterList.fetch_roster_items()
+                return (self_format ?? "Note to Self [untranslated]");
+            }
             string? display_name = get_real_display_name(stream_interactor, conversation.account, conversation.counterpart);
             if (display_name != null) return display_name;
             return conversation.counterpart.to_string();
