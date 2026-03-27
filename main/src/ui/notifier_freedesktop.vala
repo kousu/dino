@@ -53,7 +53,7 @@ public class Dino.Ui.FreeDesktopNotifier : NotificationProvider, Object {
         return 1;
     }
 
-    public async void notify_message(Message message, Conversation conversation, string conversation_display_name, string? participant_display_name) {
+    public async void notify_message(Message message, Conversation conversation) {
         string body  = "";
         if (supports_body_hyperlinks) {
             body = Util.parse_add_markup(message.body, null, true, false);
@@ -62,10 +62,10 @@ public class Dino.Ui.FreeDesktopNotifier : NotificationProvider, Object {
         } else {
             body = message.body;
         }
-        yield notify_content_item(conversation, conversation_display_name, participant_display_name, body);
+        yield notify_content_item(conversation, message.from, body);
     }
 
-    public async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image, string conversation_display_name, string? participant_display_name) {
+    public async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image) {
         string text = "";
         if (file_transfer.direction == Message.DIRECTION_SENT) {
             text = is_image ? _("Image sent") : _("File sent");
@@ -77,10 +77,13 @@ public class Dino.Ui.FreeDesktopNotifier : NotificationProvider, Object {
             text = "<i>" + text + "</i>";
         }
 
-        yield notify_content_item(conversation, conversation_display_name, participant_display_name, text);
+        Jid? from_jid = conversation.type_ == Conversation.Type.GROUPCHAT ? file_transfer.from : null;
+        yield notify_content_item(conversation, from_jid, text);
     }
 
-    private async void notify_content_item(Conversation conversation, string conversation_display_name, string? participant_display_name, string body_) {
+    private async void notify_content_item(Conversation conversation, Jid? from_jid, string body_) {
+        string conversation_display_name = Util.get_conversation_display_name(stream_interactor, conversation);
+        string? participant_display_name = from_jid != null ? Util.get_participant_display_name(stream_interactor, conversation, from_jid) : null;
         string body = body_;
         if (participant_display_name != null) {
             if (supports_body_markup) {
@@ -108,8 +111,9 @@ public class Dino.Ui.FreeDesktopNotifier : NotificationProvider, Object {
         }
     }
 
-    public async void notify_call(Call call, Conversation conversation, bool video, bool multiparty, string conversation_display_name) {
+    public async void notify_call(Call call, Conversation conversation, bool video, bool multiparty) {
         debug("[%s] Call notification", call.account.bare_jid.to_string());
+        string conversation_display_name = Util.get_conversation_display_name(stream_interactor, conversation);
         string summary = Markup.escape_text(conversation_display_name);
         string body =  video ? _("Incoming video call") : _("Incoming call");
         if (multiparty) {
@@ -213,8 +217,9 @@ public class Dino.Ui.FreeDesktopNotifier : NotificationProvider, Object {
         }
     }
 
-    public async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid, string inviter_display_name) {
+    public async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid) {
         Conversation direct_conversation = new Conversation(from_jid, account, Conversation.Type.CHAT);
+        string inviter_display_name = Util.get_participant_display_name(stream_interactor, direct_conversation, from_jid);
 
         string display_room = room_jid.bare_jid.to_string();
         string summary = _("Invitation to %s").printf(display_room);

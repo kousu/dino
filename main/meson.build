@@ -74,6 +74,7 @@ sources = files(
     'src/ui/occupant_menu/list.vala',
     'src/ui/occupant_menu/list_row.vala',
     'src/ui/occupant_menu/view.vala',
+    'src/ui/util/conversation_display_name_model.vala',
     'src/ui/util/accounts_combo_box.vala',
     'src/ui/util/config.vala',
     'src/ui/util/data_forms.vala',

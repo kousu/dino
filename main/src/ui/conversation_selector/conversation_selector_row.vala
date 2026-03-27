@@ -39,8 +39,8 @@ public class ConversationSelectorRow : ListBoxRow {
         this.conversation = conversation;
         this.stream_interactor = stream_interactor;
 
-        var display_name_model = stream_interactor.get_module(ContactModels.IDENTITY).get_display_name_model(conversation);
-        display_name_model.bind_property("display-name", name_label, "label", BindingFlags.SYNC_CREATE);
+        new ConversationDisplayNameModel(stream_interactor, conversation)
+            .bind_property("display-name", name_label, "label", BindingFlags.SYNC_CREATE);
 
         if (conversation.type_ == Conversation.Type.GROUPCHAT) {
             stream_interactor.get_module(MucManager.IDENTITY).room_info_updated.connect((account, jid) => {
@@ -89,7 +89,6 @@ public class ConversationSelectorRow : ListBoxRow {
         conversation.notify["read-up-to-item"].connect(() => update_read());
         conversation.notify["pinned"].connect(() => { update_pinned_icon(); });
 
-        update_name_label();
         update_pinned_icon();
         content_item_received();
     }
@@ -116,10 +115,6 @@ public class ConversationSelectorRow : ListBoxRow {
             });
             yield;
         }
-    }
-
-    protected void update_name_label() {
-        name_label.label = Util.get_conversation_display_name(stream_interactor, conversation);
     }
 
     private void update_pinned_icon() {

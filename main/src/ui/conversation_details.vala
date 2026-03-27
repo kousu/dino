@@ -9,7 +9,6 @@ namespace Dino.Ui.ConversationDetails {
 
     public void populate_dialog(Model.ConversationDetails model, Conversation conversation, StreamInteractor stream_interactor) {
         model.conversation = conversation;
-        model.display_name = stream_interactor.get_module(ContactModels.IDENTITY).get_display_name_model(conversation);
         model.blocked = stream_interactor.get_module(BlockingManager.IDENTITY).is_blocked(model.conversation.account, model.conversation.counterpart);
         model.domain_blocked = stream_interactor.get_module(BlockingManager.IDENTITY).is_blocked(model.conversation.account, model.conversation.counterpart.domain_jid);
 
@@ -48,7 +47,8 @@ namespace Dino.Ui.ConversationDetails {
         }
 
         // Bind properties
-        model.display_name.bind_property("display-name", view_model, "name", BindingFlags.SYNC_CREATE);
+        new ConversationDisplayNameModel(stream_interactor, model.conversation)
+            .bind_property("display-name", view_model, "name", BindingFlags.SYNC_CREATE);
         model.conversation.bind_property("notify-setting", view_model, "notification", BindingFlags.SYNC_CREATE, (_, from, ref to) => {
             switch (model.conversation.get_notification_setting(stream_interactor)) {
                 case ON:
@@ -144,13 +144,15 @@ namespace Dino.Ui.ConversationDetails {
             text = model.conversation.counterpart.to_string()
         });
         if (model.conversation.type_ == Conversation.Type.CHAT) {
+            string initial_name = Util.get_real_display_name(stream_interactor, model.conversation.account, model.conversation.counterpart) ?? "";
             var about_row = new ViewModel.PreferencesRow.Entry() {
                 title = _("Display name"),
-                text = model.display_name.display_name
+                text = initial_name
             };
             about_row.changed.connect(() => {
-                if (about_row.text != model.display_name.display_name) {
+                if (about_row.text != initial_name) {
                     stream_interactor.get_module(RosterManager.IDENTITY).set_jid_handle(model.conversation.account, model.conversation.counterpart, about_row.text);
+                    initial_name = about_row.text;
                 }
             });
             view_model.about_rows.append(about_row);

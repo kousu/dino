@@ -55,12 +55,6 @@ public class NotificationEvents : StreamInteractionModule, Object {
         Conversation.NotifySetting notify = conversation.get_notification_setting(stream_interactor);
         if (notify == Conversation.NotifySetting.OFF) return;
 
-        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null, null);
-        string? participant_display_name = null;
-        if (conversation.type_ == Conversation.Type.GROUPCHAT) {
-            participant_display_name = get_participant_display_name(stream_interactor, conversation, item.jid);
-        }
-
         switch (item.type_) {
             case MessageItem.TYPE:
                 Message message = ((MessageItem) item).message;
@@ -78,7 +72,7 @@ public class NotificationEvents : StreamInteractionModule, Object {
                 notify_content_item(item, conversation);
                 if (notify != Conversation.NotifySetting.OFF) {
                     NotificationProvider notifier = yield notifier.wait_async();
-                    yield notifier.notify_message(message, conversation, conversation_display_name, participant_display_name);
+                    yield notifier.notify_message(message, conversation);
                 }
                 break;
             case FileItem.TYPE:
@@ -92,7 +86,7 @@ public class NotificationEvents : StreamInteractionModule, Object {
                 notify_content_item(item, conversation);
                 if (notify != Conversation.NotifySetting.OFF) {
                     NotificationProvider notifier = yield notifier.wait_async();
-                    yield notifier.notify_file(file_transfer, conversation, is_image, conversation_display_name, participant_display_name);
+                    yield notifier.notify_file(file_transfer, conversation, is_image);
                 }
                 break;
             case CallItem.TYPE:
@@ -119,10 +113,9 @@ public class NotificationEvents : StreamInteractionModule, Object {
 
     private async void on_call_incoming(Call call, CallState call_state, Conversation conversation, bool video, bool multiparty) {
         if (!stream_interactor.get_module(Calls.IDENTITY).can_we_do_calls(call.account)) return;
-        string conversation_display_name = get_conversation_display_name(stream_interactor, conversation, null, null);
 
         NotificationProvider notifier = yield notifier.wait_async();
-        yield notifier.notify_call(call, conversation, video, multiparty, conversation_display_name);
+        yield notifier.notify_call(call, conversation, video, multiparty);
         call.notify["state"].connect(() => {
             if (call.state != Call.State.RINGING) {
                 notifier.retract_call_notification.begin(call, conversation);
@@ -131,16 +124,8 @@ public class NotificationEvents : StreamInteractionModule, Object {
     }
 
     private async void on_invite_received(Account account, Jid room_jid, Jid from_jid, string? password, string? reason) {
-        string inviter_display_name;
-        if (room_jid.equals_bare(from_jid)) {
-            Conversation conversation = new Conversation(room_jid, account, Conversation.Type.GROUPCHAT);
-            inviter_display_name = get_participant_display_name(stream_interactor, conversation, from_jid);
-        } else {
-            Conversation direct_conversation = new Conversation(from_jid, account, Conversation.Type.CHAT);
-            inviter_display_name = get_participant_display_name(stream_interactor, direct_conversation, from_jid);
-        }
         NotificationProvider notifier = yield notifier.wait_async();
-        yield notifier.notify_muc_invite(account, room_jid, from_jid, inviter_display_name);
+        yield notifier.notify_muc_invite(account, room_jid, from_jid);
     }
 
     private async void on_connection_error(Account account, ConnectionManager.ConnectionError error) {
@@ -158,13 +143,13 @@ public class NotificationEvents : StreamInteractionModule, Object {
 public interface NotificationProvider : Object {
     public abstract double get_priority();
 
-    public abstract async void notify_message(Message message, Conversation conversation, string conversation_display_name, string? participant_display_name);
-    public abstract async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image, string conversation_display_name, string? participant_display_name);
-    public abstract async void notify_call(Call call, Conversation conversation, bool video, bool multiparty, string conversation_display_name);
+    public abstract async void notify_message(Message message, Conversation conversation);
+    public abstract async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image);
+    public abstract async void notify_call(Call call, Conversation conversation, bool video, bool multiparty);
     public abstract async void retract_call_notification(Call call, Conversation conversation);
     public abstract async void notify_subscription_request(Conversation conversation);
     public abstract async void notify_connection_error(Account account, ConnectionManager.ConnectionError error);
-    public abstract async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid, string inviter_display_name);
+    public abstract async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid);
     public abstract async void notify_voice_request(Conversation conversation, Jid from_jid);
 
     public abstract async void retract_content_item_notifications();

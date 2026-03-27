@@ -22,7 +22,9 @@ namespace Dino.Ui {
             return 0;
         }
 
-        public async void notify_message(Message message, Conversation conversation, string conversation_display_name, string? participant_display_name) {
+        public async void notify_message(Message message, Conversation conversation) {
+            string participant_display_name = Util.get_participant_display_name(stream_interactor, conversation, message.from);
+            string conversation_display_name = Util.get_conversation_display_name(stream_interactor, conversation);
             string text = message.body;
             if (participant_display_name != null) {
                 text = @"$participant_display_name: $text";
@@ -30,7 +32,10 @@ namespace Dino.Ui {
             yield notify_content_item(conversation, conversation_display_name, text);
         }
 
-        public async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image, string conversation_display_name, string? participant_display_name) {
+        public async void notify_file(FileTransfer file_transfer, Conversation conversation, bool is_image) {
+            string conversation_display_name = Util.get_conversation_display_name(stream_interactor, conversation);
+            string? participant_display_name = conversation.type_ == Conversation.Type.GROUPCHAT ?
+                Util.get_participant_display_name(stream_interactor, conversation, file_transfer.from) : null;
             string text = "";
             if (file_transfer.direction == Message.DIRECTION_SENT) {
                 text = is_image ? _("Image sent") : _("File sent");
@@ -65,7 +70,9 @@ namespace Dino.Ui {
             }
         }
 
-        public async void notify_call(Call call, Conversation conversation, bool video, bool multiparty, string conversation_display_name) {
+        public async void notify_call(Call call, Conversation conversation, bool video, bool multiparty) {
+            string conversation_display_name = Util.get_conversation_display_name(stream_interactor, conversation);
+
             Notification notification = new Notification(conversation_display_name);
             string body =  video ? _("Incoming video call") : _("Incoming call");
             if (multiparty) {
@@ -116,8 +123,9 @@ namespace Dino.Ui {
             GLib.Application.get_default().send_notification(account.id.to_string() + "-connection-error", notification);
         }
 
-        public async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid, string inviter_display_name) {
+        public async void notify_muc_invite(Account account, Jid room_jid, Jid from_jid) {
             Conversation direct_conversation = new Conversation(from_jid, account, Conversation.Type.CHAT);
+            string inviter_display_name = Util.get_participant_display_name(stream_interactor, direct_conversation, from_jid);
 
             string display_room = room_jid.bare_jid.to_string();
             Notification notification = new Notification(_("Invitation to %s").printf(display_room));

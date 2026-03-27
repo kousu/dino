@@ -79,7 +79,6 @@ public class MucMemberSorter : Sorter {
 
 public class Dino.Ui.Model.ConversationDetails : Object {
     public Conversation conversation { get; set; }
-    public Dino.Model.ConversationDisplayName display_name { get; set; }
     public DataForms.DataForm? data_form { get; set; }
     public string? data_form_bak;
     public bool blocked { get; set; }

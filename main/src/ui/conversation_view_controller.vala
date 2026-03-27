@@ -124,8 +124,8 @@ public class ConversationViewController : Object {
         chat_input_controller.set_conversation(conversation);
 
         if (display_name_binding != null) display_name_binding.unbind();
-        var display_name_model = stream_interactor.get_module(ContactModels.IDENTITY).get_display_name_model(conversation);
-        display_name_binding = display_name_model.bind_property("display-name", main_window.conversation_window_title, "title", BindingFlags.SYNC_CREATE);
+        display_name_binding = new ConversationDisplayNameModel(stream_interactor, conversation)
+            .bind_property("display-name", main_window.conversation_window_title, "title", BindingFlags.SYNC_CREATE);
 
         update_conversation_topic();
 
