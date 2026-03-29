@@ -291,7 +291,7 @@ public class FileManager : StreamInteractionModule, Object {
             }
 
             // Save file
-            string filename = Random.next_int().to_string("%x") + "_" + file_transfer.file_name;
+            string filename = (new DateTime.now_local().format("%Y%m%d%H%M%S")) + "_" + file_transfer.file_name;
             File file = File.new_for_path(Path.build_filename(get_storage_dir(), filename));
 
             // libsoup doesn't properly support splicing
@@ -409,7 +409,7 @@ public class FileManager : StreamInteractionModule, Object {
 
     private async void save_file(FileTransfer file_transfer) throws FileSendError {
         try {
-            string filename = Random.next_int().to_string("%x") + "_" + file_transfer.file_name;
+            string filename = (new DateTime.now_local().format("%Y%m%d%H%M%S")) + "_" + file_transfer.file_name;
             File file = File.new_for_path(Path.build_filename(get_storage_dir(), filename));
             OutputStream os = file.create(FileCreateFlags.REPLACE_DESTINATION);
             yield os.splice_async(file_transfer.input_stream, OutputStreamSpliceFlags.CLOSE_SOURCE | OutputStreamSpliceFlags.CLOSE_TARGET);
