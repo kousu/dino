@@ -7,7 +7,7 @@ using Dino.Entities;
 namespace Dino {
 
 public class Database : Qlite.Database {
-    private const int VERSION = 31;
+    private const int VERSION = 32;
 
     public class AccountTable : Table {
         public Column<int> id = new Column.Integer("id") { primary_key = true, auto_increment = true };
@@ -309,10 +309,11 @@ public class Database : Qlite.Database {
         public Column<int> send_typing = new Column.Integer("send_typing") { min_version=3 };
         public Column<int> send_marker = new Column.Integer("send_marker") { min_version=3 };
         public Column<int> pinned = new Column.Integer("pinned") { default="0", min_version=25 };
+        public Column<bool> mam_scroll_enabled = new Column.BoolInt("mam_scroll_enabled") { default="0", min_version=32 };
 
         internal ConversationTable(Database db) {
             base(db, "conversation");
-            init({id, account_id, jid_id, resource, active, active_last_changed, last_active, type_, encryption, read_up_to, read_up_to_item, notification, send_typing, send_marker, pinned});
+            init({id, account_id, jid_id, resource, active, active_last_changed, last_active, type_, encryption, read_up_to, read_up_to_item, notification, send_typing, send_marker, pinned, mam_scroll_enabled});
         }
     }
 
@@ -378,10 +379,11 @@ public class Database : Qlite.Database {
         public Column<bool> from_end = new Column.BoolInt("from_end") { not_null = true };
         public Column<string> to_id = new Column.Text("to_id") { not_null = true };
         public Column<long> to_time = new Column.Long("to_time") { not_null = true };
+        public Column<string?> counterpart_jid = new Column.Text("counterpart_jid") { min_version=32 };
 
         internal MamCatchupTable(Database db) {
             base(db, "mam_catchup");
-            init({id, account_id, server_jid, from_end, from_id, from_time, to_id, to_time});
+            init({id, account_id, server_jid, from_end, from_id, from_time, to_id, to_time, counterpart_jid});
         }
     }
 
@@ -661,6 +663,36 @@ public class Database : Qlite.Database {
                 error("Failed to upgrade to database version 23 (conversation): %s", e.message);
             }
         }
+        if (oldVersion < 32) {
+            try {
+                // migrate existing mam_catchup state to (account, server, converastion)
+                // from the old (account, server) state, by examining the messages table
+                // to work out which is which
+                exec("""
+                    INSERT INTO mam_catchup
+                            (account_id, server_jid, counterpart_jid,
+                             from_id, from_time, from_end, to_id, to_time)
+                        SELECT mc.account_id, mc.server_jid, jid.bare_jid,
+                               mc.from_id, mc.from_time, mc.from_end, mc.to_id, mc.to_time
+                        FROM mam_catchup mc
+                        JOIN account a ON a.id = mc.account_id
+                                      AND mc.server_jid = a.bare_jid
+                        JOIN message m ON m.account_id = mc.account_id
+                                      AND m.type = 0
+                        JOIN jid ON jid.id = m.counterpart_id
+                        WHERE mc.counterpart_jid IS NULL
+                        GROUP BY mc.id, jid.bare_jid
+                """);
+                exec("""
+                    DELETE FROM mam_catchup
+                        WHERE counterpart_jid IS NULL
+                          AND server_jid IN (
+                              SELECT bare_jid FROM account WHERE id = account_id)
+                """);
+            } catch (Error e) {
+                error("Failed to upgrade to database version 32 (mam_catchup): %s", e.message);
+            }
+        }
     }
 
     public ArrayList<Account> get_accounts() {
@@ -822,6 +854,66 @@ public class Database : Qlite.Database {
         jid_table_cache[id] = bare_jid;
         jid_table_reverse[bare_jid] = id;
         return id;
+    }
+
+    public void delete_conversation_messages(Conversation conversation) {
+        int account_id = conversation.account.id;
+        int counterpart_jid_id = get_jid_id(conversation.counterpart);
+
+        string msg_subquery = "message_id IN (SELECT id FROM message WHERE account_id = ? AND counterpart_id = ?)";
+        string ft_subquery = "id IN (SELECT id FROM file_transfer WHERE account_id = ? AND counterpart_id = ?)";
+        string[] args = { account_id.to_string(), counterpart_jid_id.to_string() };
+
+        // cache the associated files
+        // we will clean them up if the transaction succee
+        var files = new ArrayList<string>();
+        foreach (Row row in file_transfer.select({file_transfer.path})
+                .with(file_transfer.account_id, "=", account_id)
+            .with(file_transfer.counterpart_id, "=", counterpart_jid_id)) {
+            string? path = row[file_transfer.path];
+            if (path != null) files.add(path);
+        }
+
+        try {
+            exec("BEGIN TRANSACTION");
+            body_meta.delete().where(msg_subquery, args).perform();
+            message_correction.delete().where(msg_subquery, args).perform();
+            reply.delete().where(msg_subquery, args).perform();
+            real_jid.delete().where(msg_subquery, args).perform();
+            message_occupant_id.delete().where(msg_subquery, args).perform();
+            file_hashes.delete().where(ft_subquery, args).perform();
+            file_thumbnails.delete().where(ft_subquery, args).perform();
+            sfs_sources.delete().where("file_transfer_id IN (SELECT id FROM file_transfer WHERE account_id = ? AND counterpart_id = ?)", args).perform();
+            message.delete().where("account_id = ? AND counterpart_id = ?", args).perform();
+            file_transfer.delete().where("account_id = ? AND counterpart_id = ?", args).perform();
+            content_item.delete()
+                .with(content_item.conversation_id, "=", conversation.id)
+                .perform();
+            exec("END TRANSACTION");
+        } catch (Error e) {
+            warning("Failed to delete conversation messages: %s", e.message);
+            exec("ROLLBACK");
+            throw e;
+        }
+
+        foreach (var file in files) {
+            FileUtils.remove(file);
+        }
+    }
+
+    public void delete_conversation_mam_catchup(Conversation conversation) {
+        Jid mam_server = conversation.type_ == Conversation.Type.GROUPCHAT
+            ? conversation.counterpart.bare_jid
+            : conversation.account.bare_jid;
+        Jid? counterpart = conversation.type_ == Conversation.Type.GROUPCHAT
+            ? null
+            : conversation.counterpart.bare_jid;
+
+        var delete_query = mam_catchup.delete()
+            .with(mam_catchup.account_id, "=", conversation.account.id)
+            .with(mam_catchup.server_jid, "=", mam_server.to_string());
+        if (counterpart != null) delete_query.with(mam_catchup.counterpart_jid, "=", counterpart.to_string());
+        delete_query.perform();
     }
 }
 
