@@ -823,6 +823,70 @@ public class Database : Qlite.Database {
         jid_table_reverse[bare_jid] = id;
         return id;
     }
-}
 
+    public void delete_account_data(Account account) {
+
+        // cache the associated file paths
+        // we will clean them up if the transaction succeeds
+        var files = new ArrayList<string>();
+        foreach (Row row in file_transfer.select({file_transfer.path})
+                .with(file_transfer.account_id, "=", account.id)) {
+            string? path = row[file_transfer.path];
+            if (path != null) files.add(path);
+        }
+
+        try {
+            string[] args = { account.id.to_string() };
+            exec("BEGIN TRANSACTION");
+
+            // Tables referencing message.id
+            string msg_sub = "message_id IN (SELECT id FROM message WHERE account_id = ?)";
+            body_meta.delete().where(msg_sub, args).perform();
+            message_correction.delete().where(msg_sub, args).perform();
+            reply.delete().where(msg_sub, args).perform();
+            real_jid.delete().where(msg_sub, args).perform();
+            message_occupant_id.delete().where(msg_sub, args).perform();
+
+            // Tables referencing call.id
+            call_counterpart.delete().where("call_id IN (SELECT id FROM call WHERE account_id = ?)", args).perform();
+
+            // Tables referencing file_transfer.id
+            string ft_sub_id = "id IN (SELECT id FROM file_transfer WHERE account_id = ?)";
+            string ft_sub_ftid = "file_transfer_id IN (SELECT id FROM file_transfer WHERE account_id = ?)";
+            file_hashes.delete().where(ft_sub_id, args).perform();
+            file_thumbnails.delete().where(ft_sub_id, args).perform();
+            sfs_sources.delete().where(ft_sub_ftid, args).perform();
+
+            // Tables referencing conversation.id
+            string conv_sub = "conversation_id IN (SELECT id FROM conversation WHERE account_id = ?)";
+            conversation_settings.delete().where(conv_sub, args).perform();
+            content_item.delete().where(conv_sub, args).perform();
+
+            // Direct account_id tables
+            message.delete().with(message.account_id, "=", account.id).perform();
+            file_transfer.delete().with(file_transfer.account_id, "=", account.id).perform();
+            call.delete().with(call.account_id, "=",  account.id).perform();
+            reaction.delete().with(reaction.account_id, "=", account.id).perform();
+            mam_catchup.delete().with(mam_catchup.account_id, "=", account.id).perform();
+            entity.delete().with(entity.account_id, "=", account.id).perform();
+            occupantid.delete().with(occupantid.account_id, "=", account.id).perform();
+            avatar.delete().with(avatar.account_id, "=", account.id).perform();
+            roster.delete().with(roster.account_id, "=", account.id).perform();
+            account_settings.delete().with(account_settings.account_id, "=", account.id).perform();
+            conversation.delete().with(conversation.account_id, "=", account.id).perform();
+
+            exec("END TRANSACTION");
+        } catch (Error e) {
+            warning("Failed to delete account data: %s", e.message);
+            exec("ROLLBACK");
+            throw e;
+        }
+
+        foreach (var file in files) {
+            FileUtils.remove(file);
+        }
+
+        account_table_cache.unset(account.id);
+    }
+}
 }
