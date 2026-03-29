@@ -98,7 +98,10 @@ public class MucManager : StreamInteractionModule, Object {
                 // https://xmpp.org/extensions/xep-0045.html#enter-locked
                 // and gives misleading item-not-found errors to other people attempting to join it.
 
-                var form = yield stream.get_module(Xep.Muc.Module.IDENTITY).get_config_form(stream, jid.bare_jid);
+                // "instant" room: https://xmpp.org/extensions/xep-0045.html#createroom-instant
+                var form = new DataForms.DataForm();
+                // "reserved" room: https://xmpp.org/extensions/xep-0045.html#createroom-reserved
+                // var form = yield stream.get_module(Xep.Muc.Module.IDENTITY).get_config_form(stream, jid.bare_jid);
                 yield stream.get_module(Xep.Muc.Module.IDENTITY).set_config_form(stream, jid.bare_jid, form);
             }
 
