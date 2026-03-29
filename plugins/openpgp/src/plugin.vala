@@ -27,6 +27,8 @@ public class Plugin : Plugins.RootInterface, Object {
         app.stream_interactor.module_manager.initialize_account_modules.connect(on_initialize_account_modules);
 
         Manager.start(app.stream_interactor, db);
+
+        app.stream_interactor.account_removed.connect((account) => db.delete_account_data(account));
         app.stream_interactor.get_module(FileManager.IDENTITY).add_file_encryptor(new PgpFileEncryptor(app.stream_interactor));
         app.stream_interactor.get_module(FileManager.IDENTITY).add_file_decryptor(new PgpFileDecryptor());
         JingleFileHelperRegistry.instance.add_encryption_helper(Encryption.PGP, new JingleFileEncryptionHelperTransferOnly());

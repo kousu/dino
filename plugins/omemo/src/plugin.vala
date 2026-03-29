@@ -73,6 +73,8 @@ public class Plugin : RootInterface, Object {
 
         Manager.start(this.app.stream_interactor, db, trust_manager, encryptors);
 
+        app.stream_interactor.account_removed.connect((account) => db.delete_account_data(account));
+
         string locales_dir;
         if (app.search_path_generator != null) {
             locales_dir = ((!)app.search_path_generator).get_locale_path(GETTEXT_PACKAGE, LOCALE_INSTALL_DIR);

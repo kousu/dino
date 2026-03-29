@@ -266,6 +266,26 @@ public class Database : Qlite.Database {
         }
     }
 
+    public void delete_account_data(Account account) {
+        int identity_id = identity.get_id(account.id);
+        if (identity_id < 0) return;
+
+        try {
+            exec("BEGIN TRANSACTION");
+            content_item_meta.delete().with(content_item_meta.identity_id, "=", identity_id).perform();
+            session.delete().with(session.identity_id, "=", identity_id).perform();
+            pre_key.delete().with(pre_key.identity_id, "=", identity_id).perform();
+            signed_pre_key.delete().with(signed_pre_key.identity_id, "=", identity_id).perform();
+            trust.delete().with(trust.identity_id, "=", identity_id).perform();
+            identity_meta.delete().with(identity_meta.identity_id, "=", identity_id).perform();
+            identity.delete().with(identity.account_id, "=", account.id).perform();
+            exec("END TRANSACTION");
+        } catch (Error e) {
+            warning("Failed to delete OMEMO account data: %s", e.message);
+            try { exec("ROLLBACK"); } catch (Error ignored) {}
+        }
+    }
+
     public override void migrate(long oldVersion) {
         if(oldVersion == 1) {
             try {

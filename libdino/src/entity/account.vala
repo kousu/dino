@@ -63,6 +63,7 @@ public class Account : Object {
     }
 
     public void remove() {
+        db.delete_account_data(this);
         db.account.delete().with(db.account.bare_jid, "=", bare_jid.to_string()).perform();
         notify.disconnect(on_update);
         id = -1;
