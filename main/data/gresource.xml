@@ -46,6 +46,8 @@
     <file>icons/scalable/actions/dino-window-close-symbolic.svg</file>
     <file>icons/scalable/apps/im.dino.Dino-symbolic.svg</file>
     <file>icons/scalable/apps/im.dino.Dino.svg</file>
+    <file>icons/scalable/apps/im.dino.Dino.Attention-symbolic.svg</file>
+    <file>icons/scalable/apps/im.dino.Dino.Attention.svg</file>
     <file>icons/scalable/devices/dino-device-desktop-symbolic.svg</file>
     <file>icons/scalable/devices/dino-device-phone-symbolic.svg</file>
     <file>icons/scalable/devices/dino-phone-hangup-symbolic.svg</file>
@@ -67,6 +69,7 @@
     <file>icons/scalable/status/dino-changes-allow-symbolic.svg</file>
     <file>icons/scalable/status/dino-changes-prevent-symbolic.svg</file>
     <file>icons/scalable/status/dino-channel-insecure-symbolic.svg</file>
+    <file>icons/scalable/status/dino-clock-alt-symbolic.svg</file>
     <file>icons/scalable/status/dino-dialog-warning-symbolic.svg</file>
     <file>icons/scalable/status/dino-double-tick-symbolic.svg</file>
     <file>icons/scalable/status/dino-face-uncertain-symbolic.svg</file>
